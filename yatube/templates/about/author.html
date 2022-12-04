@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Об авторе проекта{% endblock %}
+{% block content %}
+
+<div class="container py-5">  
+    <h1>Привет, меня зовут Никита!</h1>
+    <br>
+    <img src="{% static 'img/author.jpg' %}" width="400" height="450"
+        class="d-inline-block align-top">
+  <p>
+    <h3> Тут я размещу информацию о себе, используя свои умения верстать.
+    </h3>
+  <p>  
+    Как видишь, умения верстать находятся в предзачаточном состоянии, но 
+    это дело поправимое, внесу в Notion заметку, что до конца года надо 
+    будет как нибудь посвятить пару вечеров изучению bootstrap, css, 
+    html и прочих латинских аббревиатур.
+  </p>
+</p>
+</div>  
+{% endblock %} 
