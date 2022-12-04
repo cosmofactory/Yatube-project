@@ -30,7 +30,8 @@ urlpatterns = [
 handler404 = 'core.views.page_not_found'
 handler400 = 'core.views.bad_request'
 handler403 = 'core.views.csrf_failure'
-handler400 = 'core.views.server_error'
+handler500 = 'core.views.server_error'
+
 
 if settings.DEBUG:
     urlpatterns += static(
