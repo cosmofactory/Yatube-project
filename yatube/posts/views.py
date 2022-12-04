@@ -171,7 +171,10 @@ def profile_follow(request, username):
     """Starts following other user."""
     user = get_object_or_404(User, username=request.user.username)
     author = get_object_or_404(User, username=username)
+    check = Follow.objects.filter(user=user, author=author)
     if user != author:
+        if check.exists():
+            return redirect('posts:profile', username)
         Follow.objects.create(user=user, author=author)
         return redirect('posts:profile', username)
     return redirect('posts:profile', username)
