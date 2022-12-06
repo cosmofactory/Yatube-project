@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 from django.contrib.auth import get_user_model
 from django.views.decorators.cache import cache_page
 from .forms import PostForm, CommentForm
-from .models import Post, Group, Comment, Follow
+from .models import Post, Group, Follow
 from .utils import pagination
 
 
@@ -31,9 +31,7 @@ def group_posts(request, slug):
     """List of posts by certain group."""
     template = 'posts/group_list.html'
     group = get_object_or_404(Group, slug=slug)
-    posts = Post.objects.select_related(
-        'group'
-    ).filter(group=group)
+    posts = group.posts.filter(group=group)
     title = f'Записи сообщества {group.title}'
     context = {
         'title': title,
@@ -49,18 +47,11 @@ def profile(request, username):
     template = 'posts/profile.html'
     author = get_object_or_404(User, username=username)
     title = f'Профиль пользователя {author.get_full_name()}'
-    posts = Post.objects.select_related(
-        'author',
-        'group'
-    ).filter(author=author)
+    posts = author.posts.filter(author=author)
     total_posts = posts.count()
     following = False
-    if request.user.is_authenticated is True:
-
-        user = get_object_or_404(User, username=request.user.username)
-        check = Follow.objects.filter(user=user, author=author)
-        if check:
-            following = True
+    if request.user.is_authenticated and author.following.exists():
+        following = True
     context = {
         'title': title,
         'author': author,
@@ -78,10 +69,10 @@ def post_detail(request, post_id):
         Post.objects.select_related('group', 'author'),
         id=post_id
     )
-    comments = Comment.objects.all().filter(post=post_id)
-    form = CommentForm(request.POST or None)
+    comments = post.comments.filter(post=post_id)
+    form = CommentForm()
     title = f'Пост {post.text[:MAX_POST_CHARS]}'
-    total_posts = Post.objects.filter(author=post.author).count()
+    total_posts = post.author.posts.count()
     context = {
         'title': title,
         'posts': post,
@@ -97,16 +88,12 @@ def post_create(request):
     """Creates a new post."""
     template = 'posts/create_post.html'
     title = 'Новая запись в блоге.'
-    if request.method == 'POST':
-        form = PostForm(request.POST, files=request.FILES or None)
-
-        if form.is_valid():
-            new_post = form.save(commit=False)
-            new_post.author = request.user
-            new_post.save()
-            return redirect('posts:profile', request.user)
-    else:
-        form = PostForm()
+    form = PostForm(request.POST or None, files=request.FILES or None)
+    if form.is_valid():
+        new_post = form.save(commit=False)
+        new_post.author = request.user
+        new_post.save()
+        return redirect('posts:profile', request.user)
     context = {
         'title': title,
         'form': form,
@@ -155,8 +142,7 @@ def add_comment(request, post_id):
 @login_required
 def follow_index(request):
     template = 'posts/follow.html'
-    user_follows = Follow.objects.filter(user=request.user)
-    posts = Post.objects.filter(author__following__in=user_follows)
+    posts = Post.objects.filter(author__following__user=request.user)
     title = f'Лента подписок пользователя {request.user.get_full_name()}'
     context = {
         'title': title,
@@ -169,13 +155,11 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     """Starts following other user."""
-    user = get_object_or_404(User, username=request.user.username)
     author = get_object_or_404(User, username=username)
-    check = Follow.objects.filter(user=user, author=author)
-    if user != author:
-        if check.exists():
+    if request.user != author:
+        if author.following.exists():
             return redirect('posts:profile', username)
-        Follow.objects.create(user=user, author=author)
+        Follow.objects.create(user=request.user, author=author)
         return redirect('posts:profile', username)
     return redirect('posts:profile', username)
 
@@ -183,7 +167,6 @@ def profile_follow(request, username):
 @login_required
 def profile_unfollow(request, username):
     """Ceases following other user."""
-    user = get_object_or_404(User, username=request.user.username)
     author = get_object_or_404(User, username=username)
-    Follow.objects.filter(user=user, author=author).delete()
+    Follow.objects.filter(user=request.user, author=author).delete()
     return redirect('posts:profile', username)

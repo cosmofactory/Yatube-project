@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 
+
 User = get_user_model()
 MAX_TEXT_DISPLAYED = 15
 
@@ -87,4 +88,9 @@ class Follow(models.Model):
         return f'{self.user.id} is following {self.author.id}'
 
     class Meta:
-        unique_together = ('user', 'author',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                name='unique_following'
+            )
+        ]
