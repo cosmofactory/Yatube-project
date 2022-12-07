@@ -31,7 +31,7 @@ def group_posts(request, slug):
     """List of posts by certain group."""
     template = 'posts/group_list.html'
     group = get_object_or_404(Group, slug=slug)
-    posts = group.posts.filter(group=group)
+    posts = group.posts.select_related('group')
     title = f'Записи сообщества {group.title}'
     context = {
         'title': title,
@@ -47,11 +47,11 @@ def profile(request, username):
     template = 'posts/profile.html'
     author = get_object_or_404(User, username=username)
     title = f'Профиль пользователя {author.get_full_name()}'
-    posts = author.posts.filter(author=author)
+    posts = author.posts.select_related('author', 'group')
     total_posts = posts.count()
     following = False
-    if request.user.is_authenticated and author.following.exists():
-        following = True
+    if request.user.is_authenticated:
+        following = author.following.filter(user=request.user).exists()
     context = {
         'title': title,
         'author': author,
@@ -69,7 +69,7 @@ def post_detail(request, post_id):
         Post.objects.select_related('group', 'author'),
         id=post_id
     )
-    comments = post.comments.filter(post=post_id)
+    comments = post.comments.select_related('post')
     form = CommentForm()
     title = f'Пост {post.text[:MAX_POST_CHARS]}'
     total_posts = post.author.posts.count()
